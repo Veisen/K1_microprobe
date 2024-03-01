@@ -1,0 +1,90 @@
+{\rtf1\ansi\ansicpg1250\cocoartf2761
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;\red251\green0\blue7;}
+{\*\expandedcolortbl;;\cssrgb\c100000\c12195\c0;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs36 \cf2 add to printer.cfg
+\fs24 \cf0 \
+\
+[gcode_macro PROBE_DOWN]\
+gcode:\
+    SET_PIN PIN=probe_enable VALUE=1\
+\
+[gcode_macro PROBE_UP]\
+gcode:\
+    SET_PIN PIN=probe_enable VALUE=0\
+\
+[output_pin probe_enable]\
+pin: nozzle_mcu:PA8  # Set to the control pin on your board\
+value: 0\
+\
+[probe]\
+pin: ^!nozzle_mcu:PA9  # NOTE FOR V2 users: Set this to ^!PC14 to set the low level trigger \
+deactivate_on_each_sample: False\
+x_offset: 0\
+y_offset: 20.3\
+#x_offset: 0  zadni offset\
+#y_offset: 25.25  zadni offset\
+#z_offset: 0  # Will be overridden when you do a PROBE_CALIBRATE\
+samples: 2\
+samples_tolerance: 0.05\
+samples_tolerance_retries: 3\
+activate_gcode:\
+    PROBE_DOWN\
+    G4 P500\
+deactivate_gcode:\
+    PROBE_UP\
+\
+[bed_mesh]\
+speed: 250\
+horizontal_move_z: 2\
+mesh_min: 5,25.3\
+mesh_max: 295, 295\
+#mesh_min: 5,30\
+#mesh_max: 295,295\
+probe_count: 12,12\
+algorithm: bicubic\
+bicubic_tension: 0.1\
+\
+
+\fs36 \cf2 in printer.cfg modify
+\fs24 \cf0 \
+\
+[stepper_z]\
+endstop_pin: probe:z_virtual_endstop\
+# position_endstop: 0\
+\
+
+\fs36 \cf2 add to gcode_macro.cfg
+\fs24 \cf0 \
+\
+[gcode_macro SAFE_MOVE_Z]\
+gcode:\
+    G90\
+    \{% if printer.toolhead.homed_axes != "x" %\} # If X-Axis not homed.\
+		M117 Homing X-Axis...\
+		G28 X0\
+        \{% if printer.toolhead.homed_axes != "y" %\} # If Y-Axis not homed.\
+        M117 Homing Y-Axis...\
+		G28 Y0\
+        \{% endif %\}\
+	\{% endif %\}\
+    SAVE_GCODE_STATE NAME=previous_homing_positions\
+    G0 X280 Y30 F4500.0 # Move to Z-Offsets.\
+    G28 Z0 # Home Z-Axis.\
+    G0 Z5.0 F600.0 # Raise Z-Axis 5.0mm.\
+    RESTORE_GCODE_STATE NAME=previous_homing_positions MOVE=1 MOVE_SPEED=75.0\
+\
+[gcode_macro SET_Z_OFFSET]\
+gcode:\
+  SET_GCODE_OFFSET Z=0\
+\
+
+\fs36 \cf2 Replace files
+\fs24 \cf0 \
+\
+replace file custom_macro.py in /usr/share/klipper/klippy/extras\
+\
+replace file mcu.py in /usr/share/klipper/klippy}
